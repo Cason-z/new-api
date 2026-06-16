@@ -6,6 +6,7 @@ When the requested model is recognized as an image generation model, New API con
 Behavior:
 - The prompt is read from the latest non-empty `user` message text.
 - `gpt-5.4` and `gpt-5.4-mini` chat requests are also routed to `MAI-Image-2.5` when the latest user message clearly asks to generate or edit an image, poster, logo, cover, concept art, meme, wallpaper, avatar, or similar visual output.
+- Follow-up requests such as `再给我生成一个...模板` continue to route to image generation when the recent conversation context already contains a generated image or an earlier image-generation request.
 - When the chat request already carries an explicit image-generation tool signal, the bridge prefers that signal over plain keyword matching.
 - Requests that ask for prompt writing, copywriting, or concept explanation, such as image prompt drafting or poster copy, stay on the normal text path.
 - Normal `gpt-5.4` and `gpt-5.4-mini` text requests, including requests to write image prompts or descriptions, stay on the text chat path.
@@ -16,6 +17,6 @@ Behavior:
 - The upstream image response is returned to the client as a chat completion.
 - If the original chat request used `stream: true`, the response is emitted as chat-compatible SSE chunks.
 - The chat response keeps the client-requested GPT model name in the returned `model` field even when the upstream request is internally routed to `MAI-Image-2.5`.
-- Returned images are embedded as Markdown image links. Base64 image responses are returned as `data:image/png;base64,...`.
+- Returned images are embedded as Markdown image links. Base64 image responses are returned as `data:<detected mime>;base64,...` so the client sees the real image format instead of a hard-coded PNG label.
 
 This keeps clients such as Cherry Studio compatible without requiring them to call `/v1/images/generations` directly.

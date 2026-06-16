@@ -80,6 +80,21 @@ func TestShouldNotBridgeGPT54ImagePromptWriting(t *testing.T) {
 	require.False(t, shouldBridgeChatImageRequest(c, types.RelayFormatOpenAI, request))
 }
 
+func TestShouldBridgeGPT54FollowUpImageIntentAfterGeneratedImage(t *testing.T) {
+	c := gin.CreateTestContextOnly(httptest.NewRecorder(), gin.New())
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	request := &dto.GeneralOpenAIRequest{
+		Model: "gpt-5.4",
+		Messages: []dto.Message{
+			{Role: "user", Content: "给我生成一个关于早餐店的海报模板"},
+			{Role: "assistant", Content: "![generated image](data:image/png;base64,abc)\n\nA vertical breakfast shop poster template"},
+			{Role: "user", Content: "再给我生成一个修理店模板 修车的"},
+		},
+	}
+
+	require.True(t, shouldBridgeChatImageRequest(c, types.RelayFormatOpenAI, request))
+}
+
 func TestBuildImageRequestFromChatRequestReadsArrayTextContent(t *testing.T) {
 	request := &dto.GeneralOpenAIRequest{
 		Model: "MAI-Image-2.5",

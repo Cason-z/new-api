@@ -149,7 +149,11 @@ func imageResponseToMarkdown(response dto.ImageResponse) string {
 	for _, image := range response.Data {
 		imageURL := image.Url
 		if imageURL == "" && image.B64Json != "" {
-			imageURL = "data:image/png;base64," + image.B64Json
+			mimeType := "image/png"
+			if detectedMimeType, _, err := service.DecodeBase64FileData(image.B64Json); err == nil && detectedMimeType != "" {
+				mimeType = detectedMimeType
+			}
+			imageURL = "data:" + mimeType + ";base64," + image.B64Json
 		}
 		if imageURL == "" {
 			continue

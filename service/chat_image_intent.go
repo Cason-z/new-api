@@ -30,6 +30,10 @@ var (
 		"改", "改成", "改为", "编辑", "修", "修图", "重绘", "换成", "转成", "变成",
 		"edit", "modify", "redraw", "restyle", "transform", "turn into",
 	}
+	chatImageFollowUpKeywords = []string{
+		"再", "再来", "再给我", "换一个", "来一个", "类似", "同款", "同风格", "这个风格", "这种风格", "模板",
+		"another", "one more", "similar", "same style", "template",
+	}
 )
 
 func ShouldRouteChatImageIntent(chatRequest *dto.GeneralOpenAIRequest) bool {
@@ -55,6 +59,9 @@ func ShouldRouteChatImageIntent(chatRequest *dto.GeneralOpenAIRequest) bool {
 	if messageHasImageInput(latestUserMessage) && hasAnyKeyword(prompt, chatImageEditKeywords) {
 		return true
 	}
+	if hasRecentImageGenerationContext(chatRequest.Messages) && isFollowUpImageIntent(prompt) {
+		return true
+	}
 	if hasImageIntentToolDefinition(chatRequest) && isTextImageIntent(prompt) {
 		return true
 	}
@@ -63,6 +70,10 @@ func ShouldRouteChatImageIntent(chatRequest *dto.GeneralOpenAIRequest) bool {
 
 func isTextImageIntent(prompt string) bool {
 	return hasAnyKeyword(prompt, chatImageActionKeywords) && hasAnyKeyword(prompt, chatImageObjectKeywords)
+}
+
+func isFollowUpImageIntent(prompt string) bool {
+	return hasAnyKeyword(prompt, chatImageActionKeywords) && hasAnyKeyword(prompt, chatImageFollowUpKeywords)
 }
 
 func IsChatImageIntentSourceModel(model string) bool {
@@ -103,6 +114,22 @@ func isImagePromptWritingRequest(prompt string) bool {
 			if strings.Contains(prompt, action) {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+func hasRecentImageGenerationContext(messages []dto.Message) bool {
+	for i := len(messages) - 1; i >= 0; i-- {
+		text := strings.ToLower(messageContentText(messages[i]))
+		if text == "" {
+			continue
+		}
+		if strings.Contains(text, "![generated image](") || strings.Contains(text, "data:image/") {
+			return true
+		}
+		if messages[i].Role == "user" && isTextImageIntent(text) {
+			return true
 		}
 	}
 	return false

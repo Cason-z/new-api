@@ -67,3 +67,29 @@ func TestShouldNotRouteChatImageIntentForConceptArtExplanation(t *testing.T) {
 
 	require.False(t, ShouldRouteChatImageIntent(request))
 }
+
+func TestShouldRouteChatImageIntentForFollowUpTemplateAfterGeneratedImage(t *testing.T) {
+	request := &dto.GeneralOpenAIRequest{
+		Model: "gpt-5.4",
+		Messages: []dto.Message{
+			{Role: "user", Content: "给我生成一个关于早餐店的海报模板"},
+			{Role: "assistant", Content: "![generated image](data:image/png;base64,abc)\n\nA vertical breakfast shop poster template"},
+			{Role: "user", Content: "再给我生成一个修理店模板 修车的"},
+		},
+	}
+
+	require.True(t, ShouldRouteChatImageIntent(request))
+}
+
+func TestShouldNotRouteChatImageIntentForFollowUpNonVisualTextRequest(t *testing.T) {
+	request := &dto.GeneralOpenAIRequest{
+		Model: "gpt-5.4",
+		Messages: []dto.Message{
+			{Role: "user", Content: "给我生成一个关于早餐店的海报模板"},
+			{Role: "assistant", Content: "![generated image](data:image/png;base64,abc)\n\nA vertical breakfast shop poster template"},
+			{Role: "user", Content: "再给我生成一个早餐店营销方案"},
+		},
+	}
+
+	require.False(t, ShouldRouteChatImageIntent(request))
+}

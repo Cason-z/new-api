@@ -127,3 +127,20 @@
 - `service/chat_image_intent_test.go`: added boundary coverage for logo generation, image editing, tool-driven routing, poster copywriting, and concept explanation.
 - `docs/chat-image-bridge.md`: documented the stricter routing signals and preserved response model name.
 - Rollback: revert this task's changes in the seven listed files, then rebuild and redeploy the previous `chat-image-bridge` image.
+
+## 2026-06-17 - Task: Fix follow-up GPT image intent routing and image MIME labeling
+### What was done
+- Fixed the GPT image-intent bridge so follow-up requests such as `再给我生成一个修理店模板` still route to `MAI-Image-2.5` when the recent conversation context already shows a generated image.
+- Kept follow-up non-visual text requests on the normal chat path, so the new context rule does not blindly force all later turns into image generation.
+- Fixed chat-image bridge Markdown output to use the detected base64 image MIME type instead of always labeling embedded images as PNG.
+- Updated the bridge documentation to describe follow-up intent routing and detected MIME output.
+### Testing
+- Passed: `go test ./controller ./relay ./service -run 'TestShouldRouteChatImageIntent|TestShouldBridgeGPT54|TestWriteChatImage|TestImageResponseToMarkdown' -count=1`.
+### Notes
+- `service/chat_image_intent.go`: added follow-up image-intent detection based on recent generated-image context.
+- `service/chat_image_intent_test.go`: added coverage for follow-up template generation and non-visual follow-up text.
+- `controller/chat_image_bridge_test.go`: added bridge coverage for GPT follow-up image generation after a prior generated image.
+- `relay/chat_image_bridge_handler.go`: now detects the real MIME type for base64 image responses before building Markdown image links.
+- `relay/chat_image_bridge_handler_test.go`: added coverage for MIME-aware Markdown image output.
+- `docs/chat-image-bridge.md`: documented follow-up routing and MIME-aware embedded image output.
+- Rollback: revert this task's changes in the six listed files, then rebuild and redeploy the previous `chat-image-bridge` image.

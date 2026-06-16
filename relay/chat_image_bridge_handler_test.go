@@ -1,7 +1,11 @@
 package relay
 
 import (
+	"encoding/base64"
 	"encoding/json"
+	"image"
+	"image/color"
+	"image/jpeg"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -43,4 +47,23 @@ func TestWriteChatImageStreamResponseUsesClientRequestedModel(t *testing.T) {
 	require.Contains(t, body, `"model":"gpt-5.4"`)
 	require.NotContains(t, body, `"model":"MAI-Image-2.5"`)
 	require.True(t, strings.Contains(recorder.Header().Get("Content-Type"), "text/event-stream"))
+}
+
+func TestImageResponseToMarkdownUsesDetectedMimeType(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	img.Set(0, 0, color.RGBA{R: 255, G: 255, B: 255, A: 255})
+
+	var buffer strings.Builder
+	encoder := base64.NewEncoder(base64.StdEncoding, &buffer)
+	require.NoError(t, jpeg.Encode(encoder, img, nil))
+	require.NoError(t, encoder.Close())
+
+	markdown := imageResponseToMarkdown(dto.ImageResponse{
+		Data: []dto.ImageData{
+			{B64Json: buffer.String()},
+		},
+	})
+
+	require.Contains(t, markdown, "data:image/jpeg;base64,")
+	require.NotContains(t, markdown, "data:image/png;base64,")
 }

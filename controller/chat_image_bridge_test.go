@@ -27,7 +27,11 @@ func TestBuildImageRequestFromChatRequestUsesLastUserMessage(t *testing.T) {
 	require.True(t, originalStream)
 	require.Equal(t, "MAI-Image-2.5", imageRequest.Model)
 	require.Equal(t, "生成一个1920x1080p的猫猫壁纸 要求布偶猫", imageRequest.Prompt)
-	require.Equal(t, "1024x1024", imageRequest.Size)
+	require.Equal(t, "1365x768", imageRequest.Size)
+	require.NotNil(t, imageRequest.Width)
+	require.NotNil(t, imageRequest.Height)
+	require.Equal(t, 1365, *imageRequest.Width)
+	require.Equal(t, 768, *imageRequest.Height)
 	require.NotNil(t, imageRequest.N)
 	require.Equal(t, uint(2), *imageRequest.N)
 }
@@ -51,6 +55,41 @@ func TestBuildImageRequestFromChatRequestReadsArrayTextContent(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, originalStream)
 	require.Equal(t, "画一只布偶猫\n16:9 壁纸", imageRequest.Prompt)
+	require.Equal(t, "1365x768", imageRequest.Size)
+	require.NotNil(t, imageRequest.Width)
+	require.NotNil(t, imageRequest.Height)
+	require.Equal(t, 1365, *imageRequest.Width)
+	require.Equal(t, 768, *imageRequest.Height)
+}
+
+func TestBuildImageRequestFromChatRequestDefaultsToSquareSize(t *testing.T) {
+	request := &dto.GeneralOpenAIRequest{
+		Model:    "MAI-Image-2.5",
+		Messages: []dto.Message{{Role: "user", Content: "画一只布偶猫头像"}},
+	}
+
+	imageRequest, _, err := buildImageRequestFromChatRequest(request)
+
+	require.NoError(t, err)
+	require.Equal(t, "1024x1024", imageRequest.Size)
+	require.NotNil(t, imageRequest.Width)
+	require.NotNil(t, imageRequest.Height)
+	require.Equal(t, 1024, *imageRequest.Width)
+	require.Equal(t, 1024, *imageRequest.Height)
+}
+
+func TestBuildImageRequestFromChatRequestDoesNotSendMAIDimensionsToOtherModels(t *testing.T) {
+	request := &dto.GeneralOpenAIRequest{
+		Model:    "gpt-image-1",
+		Messages: []dto.Message{{Role: "user", Content: "生成一个1920x1080p的猫猫壁纸"}},
+	}
+
+	imageRequest, _, err := buildImageRequestFromChatRequest(request)
+
+	require.NoError(t, err)
+	require.Equal(t, "1365x768", imageRequest.Size)
+	require.Nil(t, imageRequest.Width)
+	require.Nil(t, imageRequest.Height)
 }
 
 func TestBuildImageRequestFromChatRequestRejectsEmptyPrompt(t *testing.T) {

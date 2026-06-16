@@ -3,6 +3,8 @@ package controller
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -17,7 +19,12 @@ import (
 const (
 	chatImageBridgeContextKey       = "chat_image_bridge"
 	chatImageBridgeStreamContextKey = "chat_image_bridge_stream"
+	defaultImageBridgeSize          = "1024x1024"
+	landscapeImageBridgeSize        = "1365x768"
+	portraitImageBridgeSize         = "768x1365"
 )
+
+var imageBridgeSizePattern = regexp.MustCompile(`(?i)(\d{3,4})\s*[x×]\s*(\d{3,4})`)
 
 func shouldBridgeChatImageRequest(c *gin.Context, relayFormat types.RelayFormat, request dto.Request) bool {
 	if relayFormat != types.RelayFormatOpenAI {
@@ -47,7 +54,11 @@ func buildImageRequestFromChatRequest(chatRequest *dto.GeneralOpenAIRequest) (*d
 
 	size := chatRequest.Size
 	if size == "" {
-		size = "1024x1024"
+		size = inferImageSizeFromPrompt(prompt)
+	}
+	var width, height *int
+	if shouldSendImageBridgeDimensions(chatRequest.Model) {
+		width, height = imageDimensionsFromSize(size)
 	}
 
 	imageRequest := &dto.ImageRequest{
@@ -55,9 +66,63 @@ func buildImageRequestFromChatRequest(chatRequest *dto.GeneralOpenAIRequest) (*d
 		Prompt: strings.TrimSpace(prompt),
 		N:      common.GetPointer(n),
 		Size:   size,
+		Width:  width,
+		Height: height,
 		User:   chatRequest.User,
 	}
 	return imageRequest, lo.FromPtrOr(chatRequest.Stream, false), nil
+}
+
+func shouldSendImageBridgeDimensions(model string) bool {
+	return strings.HasPrefix(strings.ToLower(model), "mai-image-")
+}
+
+func inferImageSizeFromPrompt(prompt string) string {
+	normalized := strings.ToLower(prompt)
+	if match := imageBridgeSizePattern.FindStringSubmatch(normalized); len(match) == 3 {
+		width, _ := strconv.Atoi(match[1])
+		height, _ := strconv.Atoi(match[2])
+		if width > height {
+			return landscapeImageBridgeSize
+		}
+		if height > width {
+			return portraitImageBridgeSize
+		}
+	}
+
+	if strings.Contains(normalized, "16:9") ||
+		strings.Contains(normalized, "1080p") ||
+		strings.Contains(normalized, "横屏") ||
+		strings.Contains(normalized, "宽屏") ||
+		strings.Contains(normalized, "壁纸") ||
+		strings.Contains(normalized, "wallpaper") {
+		return landscapeImageBridgeSize
+	}
+
+	if strings.Contains(normalized, "9:16") ||
+		strings.Contains(normalized, "竖屏") ||
+		strings.Contains(normalized, "手机壁纸") ||
+		strings.Contains(normalized, "mobile wallpaper") {
+		return portraitImageBridgeSize
+	}
+
+	return defaultImageBridgeSize
+}
+
+func imageDimensionsFromSize(size string) (*int, *int) {
+	match := imageBridgeSizePattern.FindStringSubmatch(size)
+	if len(match) != 3 {
+		return nil, nil
+	}
+	width, err := strconv.Atoi(match[1])
+	if err != nil {
+		return nil, nil
+	}
+	height, err := strconv.Atoi(match[2])
+	if err != nil {
+		return nil, nil
+	}
+	return common.GetPointer(width), common.GetPointer(height)
 }
 
 func extractImagePromptFromChatMessages(messages []dto.Message) string {

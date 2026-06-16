@@ -76,3 +76,17 @@
 - Server container now runs `ghcr.io/cason-z/new-api:chat-image-bridge`.
 - Rollback container is `new-api-backup-20260616-213308`, using the previous `calciumion/new-api:latest` image.
 - Rollback command: `docker rm -f new-api && docker rename new-api-backup-20260616-213308 new-api && docker start new-api`.
+
+## 2026-06-17 - Task: Infer image bridge dimensions from chat prompts
+### What was done
+- Updated the chat image bridge so Cherry-style chat requests can infer a widescreen or portrait image size from prompt text when the client does not send an explicit `size`.
+- Mapped prompts such as `1920x1080p`, `1080p`, `16:9`, `横屏`, and `壁纸` to a MAI-safe widescreen size of `1365x768` instead of the old square `1024x1024` default.
+- Added MAI-only `width` and `height` fields so the MAI image API receives explicit dimensions without sending those extra fields to other image models.
+### Testing
+- Passed: `go test ./common ./controller -run 'TestIsImageGenerationModelRecognizesMAIImage|TestBuildImageRequestFromChatRequest' -count=1`.
+### Notes
+- `controller/chat_image_bridge.go`: inferred image sizes from chat prompts and limited `width`/`height` emission to `MAI-Image-*` models.
+- `controller/chat_image_bridge_test.go`: added coverage for widescreen prompt inference, square defaults, and non-MAI model protection.
+- `dto/openai_image.go`: added optional `width` and `height` fields for MAI image requests.
+- `docs/chat-image-bridge.md`: documented size inference and MAI dimension behavior.
+- Rollback: revert this task's changes in the four listed files, then rebuild and redeploy the previous `chat-image-bridge` image.

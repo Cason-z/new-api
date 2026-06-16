@@ -50,3 +50,14 @@
 - No server-side build was performed.
 - Changed files for this verification: none beyond formatting previously changed Go files.
 - Rollback: no separate rollback is required for verification-only work; remove the temporary `%TEMP%\codex-go-1.25.1` directory if local cleanup is desired.
+
+## 2026-06-16 - Task: Add fork-side GHCR build workflow
+### What was done
+- Added a minimal GitHub Actions workflow for the `codex/chat-image-bridge` branch.
+- The workflow builds only the linux/amd64 Docker image and pushes it to GitHub Container Registry.
+- Avoided DockerHub secrets and avoided any server-side image build.
+### Testing
+- Not run locally; this workflow is intended to be verified by GitHub Actions after push.
+### Notes
+- `.github/workflows/codex-ghcr-build.yml`: added the fork-specific GHCR build workflow.
+- Rollback: delete `.github/workflows/codex-ghcr-build.yml` and push the branch again.

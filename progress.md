@@ -61,3 +61,18 @@
 ### Notes
 - `.github/workflows/codex-ghcr-build.yml`: added the fork-specific GHCR build workflow.
 - Rollback: delete `.github/workflows/codex-ghcr-build.yml` and push the branch again.
+
+## 2026-06-17 - Task: Deploy chat image bridge image
+### What was done
+- Built the `codex/chat-image-bridge` branch in GitHub Actions under the `Cason-z/new-api` fork.
+- Pulled `ghcr.io/cason-z/new-api:chat-image-bridge` on the New API server.
+- Replaced the running `new-api` container with the GHCR image while preserving the old container as a rollback point.
+- Verified Cherry-style image chat requests and normal text chat requests against the live service.
+### Testing
+- GitHub Actions run `27630488770` completed successfully for the GHCR image build.
+- Live image bridge test passed: `POST /v1/chat/completions` with `MAI-Image-2.5` returned HTTP 200, `text/event-stream`, chat chunks, Markdown image content, a `data:image` URL, and no `Prompt must be provided` error.
+- Live text model test passed: `POST /v1/chat/completions` with `gpt-5.4-mini` returned HTTP 200 JSON and did not include image Markdown.
+### Notes
+- Server container now runs `ghcr.io/cason-z/new-api:chat-image-bridge`.
+- Rollback container is `new-api-backup-20260616-213308`, using the previous `calciumion/new-api:latest` image.
+- Rollback command: `docker rm -f new-api && docker rename new-api-backup-20260616-213308 new-api && docker start new-api`.

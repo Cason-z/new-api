@@ -96,11 +96,16 @@
 - Updated the chat image bridge so `gpt-5.4` and `gpt-5.4-mini` chat requests with explicit image generation or image editing intent are internally routed to `MAI-Image-2.5`.
 - Kept normal GPT text requests on the existing text chat path, including requests to write or refine image prompts.
 - Reused the existing MAI image bridge response path so Cherry Studio receives the generated image as a chat response.
+- Moved GPT image-intent model rewriting into the distributor stage so channel selection and model mapping both use `MAI-Image-2.5` instead of falling back to the original GPT text model.
 ### Testing
 - Passed: `go test ./common ./controller -run 'TestIsImageGenerationModelRecognizesMAIImage|TestShouldBridgeGPT54ImageIntentToMAIImage|TestShouldNotBridgeGPT54NormalTextChat|TestShouldNotBridgeGPT54ImagePromptWriting|TestBuildImageRequestFromChatRequest' -count=1`.
+- Passed: `go test ./common ./controller ./middleware ./service -run 'TestIsImageGenerationModelRecognizesMAIImage|TestShouldBridgeGPT54ImageIntentToMAIImage|TestShouldNotBridgeGPT54NormalTextChat|TestShouldNotBridgeGPT54ImagePromptWriting|TestBuildImageRequestFromChatRequest|TestRewriteChatImageIntentModel' -count=1`.
 ### Notes
-- `controller/chat_image_bridge.go`: added GPT5.4 image-intent detection and routes matching requests to `MAI-Image-2.5`.
+- `service/chat_image_intent.go`: centralized GPT image-intent detection, latest-user-text extraction, and the `MAI-Image-2.5` target model constant.
+- `middleware/distributor.go`: rewrites qualifying GPT chat requests to `MAI-Image-2.5` before channel selection.
+- `middleware/distributor_test.go`: added coverage for distributor-stage GPT-to-MAI model rewriting.
+- `controller/chat_image_bridge.go`: now reuses the shared GPT image-intent helper while converting chat content into image requests.
 - `controller/chat_image_bridge_test.go`: added coverage for GPT image intent routing and non-image text safeguards.
 - `docs/chat-image-bridge.md`: documented GPT-to-MAI automatic routing behavior.
 - `progress.md`: recorded this task's implementation, verification, and rollback point.
-- Rollback: revert this task's changes in the four listed files, then rebuild and redeploy the previous `chat-image-bridge` image.
+- Rollback: revert this task's changes in the six listed files, then rebuild and redeploy the previous `chat-image-bridge` image.

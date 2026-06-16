@@ -396,7 +396,29 @@ func getModelRequest(c *gin.Context) (*ModelRequest, bool, error) {
 	if strings.HasPrefix(c.Request.URL.Path, "/v1/responses/compact") && modelRequest.Model != "" {
 		modelRequest.Model = ratio_setting.WithCompactModelSuffix(modelRequest.Model)
 	}
+	modelRequest.Model = rewriteChatImageIntentModel(c, modelRequest.Model)
 	return &modelRequest, shouldSelectChannel, nil
+}
+
+func rewriteChatImageIntentModel(c *gin.Context, modelName string) string {
+	if modelName == "" || c == nil || c.Request == nil {
+		return modelName
+	}
+	if !strings.HasPrefix(c.Request.URL.Path, "/v1/chat/completions") {
+		return modelName
+	}
+	request, err := getModelFromRequest(c)
+	if err != nil || request == nil || request.Model == "" {
+		return modelName
+	}
+	chatRequest := &dto.GeneralOpenAIRequest{}
+	if err := common.UnmarshalBodyReusable(c, chatRequest); err != nil {
+		return modelName
+	}
+	if !service.ShouldRouteChatImageIntent(chatRequest) {
+		return modelName
+	}
+	return service.ChatImageIntentTargetModel
 }
 
 // 修复 #4834: GET /v1/video/generations/:task_id && /v1/video/:task_id 此前不解析 model，

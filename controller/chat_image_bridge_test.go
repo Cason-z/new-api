@@ -1,9 +1,13 @@
 package controller
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/types"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,6 +38,46 @@ func TestBuildImageRequestFromChatRequestUsesLastUserMessage(t *testing.T) {
 	require.Equal(t, 768, *imageRequest.Height)
 	require.NotNil(t, imageRequest.N)
 	require.Equal(t, uint(2), *imageRequest.N)
+}
+
+func TestShouldBridgeGPT54ImageIntentToMAIImage(t *testing.T) {
+	c := gin.CreateTestContextOnly(httptest.NewRecorder(), gin.New())
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	request := &dto.GeneralOpenAIRequest{
+		Model:    "gpt-5.4-mini",
+		Messages: []dto.Message{{Role: "user", Content: "生成一张1920x1080p的猫猫海报"}},
+	}
+
+	require.True(t, shouldBridgeChatImageRequest(c, types.RelayFormatOpenAI, request))
+
+	imageRequest, _, err := buildImageRequestFromChatRequest(request)
+	require.NoError(t, err)
+	require.Equal(t, "MAI-Image-2.5", imageRequest.Model)
+	require.Equal(t, "1365x768", imageRequest.Size)
+	require.NotNil(t, imageRequest.Width)
+	require.NotNil(t, imageRequest.Height)
+}
+
+func TestShouldNotBridgeGPT54NormalTextChat(t *testing.T) {
+	c := gin.CreateTestContextOnly(httptest.NewRecorder(), gin.New())
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	request := &dto.GeneralOpenAIRequest{
+		Model:    "gpt-5.4",
+		Messages: []dto.Message{{Role: "user", Content: "解释一下量子计算是什么"}},
+	}
+
+	require.False(t, shouldBridgeChatImageRequest(c, types.RelayFormatOpenAI, request))
+}
+
+func TestShouldNotBridgeGPT54ImagePromptWriting(t *testing.T) {
+	c := gin.CreateTestContextOnly(httptest.NewRecorder(), gin.New())
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	request := &dto.GeneralOpenAIRequest{
+		Model:    "gpt-5.4-mini",
+		Messages: []dto.Message{{Role: "user", Content: "帮我生成一段图片描述提示词"}},
+	}
+
+	require.False(t, shouldBridgeChatImageRequest(c, types.RelayFormatOpenAI, request))
 }
 
 func TestBuildImageRequestFromChatRequestReadsArrayTextContent(t *testing.T) {

@@ -109,3 +109,21 @@
 - `docs/chat-image-bridge.md`: documented GPT-to-MAI automatic routing behavior.
 - `progress.md`: recorded this task's implementation, verification, and rollback point.
 - Rollback: revert this task's changes in the six listed files, then rebuild and redeploy the previous `chat-image-bridge` image.
+
+## 2026-06-17 - Task: Tighten GPT image-intent detection and preserve client-facing model disguise
+### What was done
+- Tightened GPT-to-MAI image intent detection so the bridge can prefer explicit image-tool signals when present, while still handling plain-language image requests.
+- Added boundary protections so prompt-writing, poster copywriting, and concept-explanation requests stay on the text path instead of being misrouted to image generation.
+- Preserved the client-requested GPT model name in chat-image bridge responses even when the upstream request is internally rewritten to `MAI-Image-2.5`.
+- Documented the stricter intent rules and the client-facing response-model behavior.
+### Testing
+- Passed: `go test ./common ./controller ./middleware ./relay ./service -run 'TestShouldRouteChatImageIntent|TestShouldBridgeGPT54ImageIntentToMAIImage|TestShouldNotBridgeGPT54NormalTextChat|TestShouldNotBridgeGPT54ImagePromptWriting|TestBuildImageRequestFromChatRequest|TestRewriteChatImageIntentModel|TestWriteChatImage' -count=1`.
+### Notes
+- `constant/context_key.go`: added a dedicated context key to preserve the client-requested model name separately from the rewritten upstream model.
+- `middleware/distributor.go`: stores the original client model before GPT image-intent requests are rewritten to `MAI-Image-2.5`.
+- `relay/chat_image_bridge_handler.go`: now returns the preserved client model in both JSON and SSE chat-image bridge responses.
+- `relay/chat_image_bridge_handler_test.go`: added coverage for JSON and SSE response `model` disguise behavior.
+- `service/chat_image_intent.go`: added tool-signal-aware intent detection, image-edit attachment handling, and tighter false-positive guards.
+- `service/chat_image_intent_test.go`: added boundary coverage for logo generation, image editing, tool-driven routing, poster copywriting, and concept explanation.
+- `docs/chat-image-bridge.md`: documented the stricter routing signals and preserved response model name.
+- Rollback: revert this task's changes in the seven listed files, then rebuild and redeploy the previous `chat-image-bridge` image.

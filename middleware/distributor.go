@@ -411,6 +411,7 @@ func rewriteChatImageIntentModel(c *gin.Context, modelName string) string {
 	if err != nil || request == nil || request.Model == "" {
 		return modelName
 	}
+	common.SetContextKey(c, constant.ContextKeyClientRequestedModel, request.Model)
 	chatRequest := &dto.GeneralOpenAIRequest{}
 	if err := common.UnmarshalBodyReusable(c, chatRequest); err != nil {
 		return modelName

@@ -164,11 +164,10 @@ func imageResponseToMarkdown(response dto.ImageResponse) string {
 
 func writeChatImageJSONResponse(c *gin.Context, info *relaycommon.RelayInfo, content string, usage dto.Usage) {
 	created := time.Now().Unix()
-	model := ""
 	if info != nil {
 		info.SetFirstResponseTime()
-		model = info.OriginModelName
 	}
+	model := getChatImageResponseModel(c, info)
 	c.JSON(http.StatusOK, dto.OpenAITextResponse{
 		Id:      helper.GetResponseID(c),
 		Object:  "chat.completion",
@@ -191,11 +190,10 @@ func writeChatImageJSONResponse(c *gin.Context, info *relaycommon.RelayInfo, con
 func writeChatImageStreamResponse(c *gin.Context, info *relaycommon.RelayInfo, content string, usage dto.Usage) {
 	id := helper.GetResponseID(c)
 	created := time.Now().Unix()
-	model := ""
 	if info != nil {
 		info.SetFirstResponseTime()
-		model = info.OriginModelName
 	}
+	model := getChatImageResponseModel(c, info)
 
 	helper.SetEventStreamHeaders(c)
 	c.Status(http.StatusOK)
@@ -217,4 +215,14 @@ func writeChatImageStreamResponse(c *gin.Context, info *relaycommon.RelayInfo, c
 	_ = helper.ObjectData(c, helper.GenerateStopResponse(id, created, model, constant.FinishReasonStop))
 	_ = helper.ObjectData(c, helper.GenerateFinalUsageResponse(id, created, model, usage))
 	helper.Done(c)
+}
+
+func getChatImageResponseModel(c *gin.Context, info *relaycommon.RelayInfo) string {
+	if model := common.GetContextKeyString(c, constant.ContextKeyClientRequestedModel); model != "" {
+		return model
+	}
+	if info != nil {
+		return info.OriginModelName
+	}
+	return ""
 }

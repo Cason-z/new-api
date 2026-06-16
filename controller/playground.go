@@ -23,25 +23,40 @@ func Playground(c *gin.Context) {
 		}
 	}()
 
+	if err := setupPlaygroundTempToken(c); err != nil {
+		newAPIError = err
+		return
+	}
+
+	Relay(c, types.RelayFormatOpenAI)
+}
+
+func PlaygroundImage(c *gin.Context) {
+	if err := setupPlaygroundTempToken(c); err != nil {
+		c.JSON(err.StatusCode, gin.H{
+			"error": err.ToOpenAIError(),
+		})
+		return
+	}
+
+	Relay(c, types.RelayFormatOpenAIImage)
+}
+
+func setupPlaygroundTempToken(c *gin.Context) *types.NewAPIError {
 	useAccessToken := c.GetBool("use_access_token")
 	if useAccessToken {
-		newAPIError = types.NewError(errors.New("暂不支持使用 access token"), types.ErrorCodeAccessDenied, types.ErrOptionWithSkipRetry())
-		return
+		return types.NewError(errors.New("暂不支持使用 access token"), types.ErrorCodeAccessDenied, types.ErrOptionWithSkipRetry())
 	}
 
 	relayInfo, err := relaycommon.GenRelayInfo(c, types.RelayFormatOpenAI, nil, nil)
 	if err != nil {
-		newAPIError = types.NewError(err, types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
-		return
+		return types.NewError(err, types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
 	}
 
 	userId := c.GetInt("id")
-
-	// Write user context to ensure acceptUnsetRatio is available
 	userCache, err := model.GetUserCache(userId)
 	if err != nil {
-		newAPIError = types.NewError(err, types.ErrorCodeQueryDataError, types.ErrOptionWithSkipRetry())
-		return
+		return types.NewError(err, types.ErrorCodeQueryDataError, types.ErrOptionWithSkipRetry())
 	}
 	userCache.WriteContext(c)
 
@@ -51,6 +66,5 @@ func Playground(c *gin.Context) {
 		Group:  relayInfo.UsingGroup,
 	}
 	_ = middleware.SetupContextForToken(c, tempToken)
-
-	Relay(c, types.RelayFormatOpenAI)
+	return nil
 }

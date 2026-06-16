@@ -34,6 +34,9 @@ import (
 
 func relayHandler(c *gin.Context, info *relaycommon.RelayInfo) *types.NewAPIError {
 	var err *types.NewAPIError
+	if c.GetBool(chatImageBridgeContextKey) {
+		return relay.ChatImageBridgeHelper(c, info, c.GetBool(chatImageBridgeStreamContextKey))
+	}
 	switch info.RelayMode {
 	case relayconstant.RelayModeImagesGenerations, relayconstant.RelayModeImagesEdits:
 		err = relay.ImageHelper(c, info)
@@ -117,10 +120,26 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		return
 	}
 
+	if shouldBridgeChatImageRequest(c, relayFormat, request) {
+		imageRequest, originalStream, bridgeErr := buildImageRequestFromChatRequest(request.(*dto.GeneralOpenAIRequest))
+		if bridgeErr != nil {
+			newAPIError = types.NewErrorWithStatusCode(bridgeErr, types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+			return
+		}
+		request = imageRequest
+		c.Set(chatImageBridgeContextKey, true)
+		c.Set(chatImageBridgeStreamContextKey, originalStream)
+	}
+
 	relayInfo, err := relaycommon.GenRelayInfo(c, relayFormat, request, ws)
 	if err != nil {
 		newAPIError = types.NewError(err, types.ErrorCodeGenRelayInfoFailed)
 		return
+	}
+	if c.GetBool(chatImageBridgeContextKey) {
+		relayInfo.RelayMode = relayconstant.RelayModeImagesGenerations
+		relayInfo.RequestURLPath = "/v1/images/generations"
+		relayInfo.AppendRequestConversion(types.RelayFormatOpenAIImage)
 	}
 
 	needSensitiveCheck := setting.ShouldCheckPromptSensitive()

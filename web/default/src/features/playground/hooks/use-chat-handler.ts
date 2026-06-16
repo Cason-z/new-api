@@ -18,10 +18,11 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback } from 'react'
 import { toast } from 'sonner'
-import { sendChatCompletion } from '../api'
+import { sendChatCompletion, sendImageGeneration } from '../api'
 import { MESSAGE_STATUS, ERROR_MESSAGES } from '../constants'
 import {
   buildChatCompletionPayload,
+  getTextContent,
   updateAssistantMessageWithError,
   updateLastAssistantMessage,
   processStreamingContent,
@@ -98,6 +99,77 @@ export function useChatHandler({
       )
     },
     [onMessageUpdate]
+  )
+
+  const isImageGenerationModel = useCallback((model: string) => {
+    return model.trim().toLowerCase().startsWith('mai-image-')
+  }, [])
+
+  const sendImageChat = useCallback(
+    async (messages: Message[]) => {
+      const lastUserMessage = [...messages]
+        .reverse()
+        .find((message) => message.from === 'user')
+      const prompt = getTextContent(lastUserMessage?.versions[0]?.content || '')
+
+      if (!prompt.trim()) {
+        handleStreamError('Prompt is required for image generation')
+        return
+      }
+
+      try {
+        const response = await sendImageGeneration({
+          model: config.model,
+          group: config.group,
+          prompt,
+          n: 1,
+          size: '1024x1024',
+        })
+        const image = response.data?.[0]
+        const imageUrl = image?.b64_json
+          ? `data:image/png;base64,${image.b64_json}`
+          : image?.url
+
+        if (!imageUrl) {
+          handleStreamError(ERROR_MESSAGES.API_REQUEST_ERROR)
+          return
+        }
+
+        const content = `![generated image](${imageUrl})${
+          image?.revised_prompt ? `\n\n${image.revised_prompt}` : ''
+        }`
+
+        onMessageUpdate((prev) =>
+          updateLastAssistantMessage(prev, (message) => ({
+            ...finalizeMessage({
+              ...message,
+              versions: [
+                {
+                  ...message.versions[0],
+                  content,
+                },
+              ],
+            }),
+            status: MESSAGE_STATUS.COMPLETE,
+          }))
+        )
+      } catch (error: unknown) {
+        const err = error as {
+          response?: {
+            data?: { message?: string; error?: { message?: string; code?: string } }
+          }
+          message?: string
+        }
+        handleStreamError(
+          err?.response?.data?.error?.message ||
+            err?.response?.data?.message ||
+            err?.message ||
+            ERROR_MESSAGES.API_REQUEST_ERROR,
+          err?.response?.data?.error?.code || undefined
+        )
+      }
+    },
+    [config.group, config.model, handleStreamError, onMessageUpdate]
   )
 
   // Send streaming chat request
@@ -177,13 +249,24 @@ export function useChatHandler({
   // Send chat request (stream or non-stream based on config)
   const sendChat = useCallback(
     (messages: Message[]) => {
+      if (isImageGenerationModel(config.model)) {
+        sendImageChat(messages)
+        return
+      }
       if (config.stream) {
         sendStreamingChat(messages)
       } else {
         sendNonStreamingChat(messages)
       }
     },
-    [config.stream, sendStreamingChat, sendNonStreamingChat]
+    [
+      config.model,
+      config.stream,
+      isImageGenerationModel,
+      sendImageChat,
+      sendStreamingChat,
+      sendNonStreamingChat,
+    ]
   )
 
   // Stop generation

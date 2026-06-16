@@ -144,3 +144,14 @@
 - `relay/chat_image_bridge_handler_test.go`: added coverage for MIME-aware Markdown image output.
 - `docs/chat-image-bridge.md`: documented follow-up routing and MIME-aware embedded image output.
 - Rollback: revert this task's changes in the six listed files, then rebuild and redeploy the previous `chat-image-bridge` image.
+
+## 2026-06-17 - Task: Tighten follow-up image keywords after online false-positive verification
+### What was done
+- Tightened the follow-up GPT image-intent rule so a recent generated-image context alone no longer forces unrelated follow-up text requests into image generation.
+- Restricted the follow-up shortcut to visual continuation words such as `模板`, `海报`, `壁纸`, `logo`, and style-follow-up phrasing, while keeping non-visual requests like `营销方案` on the text path.
+### Testing
+- Passed: `go test ./service ./controller -run 'TestShouldRouteChatImageIntentForFollowUpTemplateAfterGeneratedImage|TestShouldNotRouteChatImageIntentForFollowUpNonVisualTextRequest|TestShouldBridgeGPT54FollowUpImageIntentAfterGeneratedImage' -count=1`.
+### Notes
+- `service/chat_image_intent.go`: removed overly broad follow-up keywords and kept only visual continuation keywords for image follow-up routing.
+- `progress.md`: recorded the online false-positive correction and validation.
+- Rollback: revert this task's changes in the two listed files, then rebuild and redeploy the previous `chat-image-bridge` image.

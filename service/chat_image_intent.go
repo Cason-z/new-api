@@ -31,8 +31,8 @@ var (
 		"edit", "modify", "redraw", "restyle", "transform", "turn into",
 	}
 	chatImageFollowUpKeywords = []string{
-		"再", "再来", "再给我", "换一个", "来一个", "类似", "同款", "同风格", "这个风格", "这种风格", "模板",
-		"another", "one more", "similar", "same style", "template",
+		"模板", "海报", "壁纸", "logo", "封面", "插画", "头像", "表情包", "同款", "同风格", "这个风格", "这种风格", "类似的图",
+		"template", "poster", "wallpaper", "cover", "illustration", "avatar", "same style", "similar image",
 	}
 )
 

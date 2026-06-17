@@ -184,3 +184,15 @@
 - `service/openaicompat/policy_test.go`: adds coverage for search-tool routing and non-search function-tool safety.
 - `docs/chat-image-bridge.md`: documents forced responses routing for built-in search tools.
 - Rollback: revert this task's changes in the four listed files, rebuild the image, and redeploy the previous `chat-image-bridge` container image.
+
+## 2026-06-17 - Task: Restore missing responses-compat wrapper for built-in search deployment
+### What was done
+- Restored the missing service-layer wrapper needed by the new built-in search routing logic so the chat compatibility handler can compile against the shared responses-compat entrypoint again.
+- Kept the fix narrowly scoped to the export gap that broke the GitHub image build, without changing the already-implemented request-routing behavior.
+### Testing
+- Local Go verification is still unavailable on this workstation because `go` is not present in the current PATH.
+- Next verification step is the GitHub container build for branch `codex/chat-image-bridge`; successful compilation there is the required proof for this patch before redeploying the server image.
+### Notes
+- `service/openai_chat_responses_compat.go`: exported `ShouldChatCompletionsUseResponsesForRequest` so relay code can call the request-level built-in search detector through the `service` package.
+- `progress.md`: recorded this build-unblock patch and the remaining verification path.
+- Rollback: revert this task's changes in the two listed files, rerun the GitHub image build, and redeploy the previous working `chat-image-bridge` image if needed.

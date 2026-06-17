@@ -1,6 +1,11 @@
 package openaicompat
 
-import "github.com/QuantumNous/new-api/setting/model_setting"
+import (
+	"strings"
+
+	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/setting/model_setting"
+)
 
 func ShouldChatCompletionsUseResponsesPolicy(policy model_setting.ChatCompletionsToResponsesPolicy, channelID int, channelType int, model string) bool {
 	if !policy.IsChannelEnabled(channelID, channelType) {
@@ -16,4 +21,17 @@ func ShouldChatCompletionsUseResponsesGlobal(channelID int, channelType int, mod
 		channelType,
 		model,
 	)
+}
+
+func ShouldChatCompletionsUseResponsesForRequest(req *dto.GeneralOpenAIRequest) bool {
+	if req == nil {
+		return false
+	}
+	for _, tool := range req.Tools {
+		switch strings.TrimSpace(tool.Type) {
+		case dto.BuildInToolWebSearchPreview, "web_search":
+			return true
+		}
+	}
+	return false
 }

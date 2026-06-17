@@ -24,3 +24,4 @@ This keeps clients such as Cherry Studio compatible without requiring them to ca
 Additional compatibility:
 - When an OpenAI-compatible client sends built-in search tools such as `web_search_preview` through `/v1/chat/completions`, the chat-to-responses compatibility layer rewrites that tool type to `web_search` before sending the request to Azure/Foundry Responses APIs.
 - This is intended for Azure/Foundry upstreams that reject `web_search_preview` but accept the newer `web_search` tool name.
+- Requests carrying built-in web-search tools are also forced onto the `/v1/responses` compatibility path, so they do not fall back to Azure `/chat/completions` endpoints that only accept `function` and `custom` tools.

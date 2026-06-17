@@ -169,3 +169,18 @@
 - `service/openaicompat/chat_to_responses_test.go`: adds coverage for `web_search_preview` to `web_search` conversion.
 - `docs/chat-image-bridge.md`: documents Azure/Foundry search tool compatibility.
 - Rollback: revert this task's changes in the three listed files, rebuild the image, and redeploy the previous `chat-image-bridge` container image.
+
+## 2026-06-17 - Task: Force built-in search chat requests onto the Responses path
+### What was done
+- Fixed the remaining Cherry Studio search failure path by forcing chat requests that carry built-in web-search tools onto the `/v1/responses` compatibility flow instead of leaving them on Azure `/chat/completions`.
+- Kept normal function-tool chat requests on the original chat-completions path so the change only affects built-in search behavior.
+- Updated the compatibility notes so future troubleshooting clearly distinguishes tool-name rewriting from endpoint-path routing.
+### Testing
+- Added unit coverage for routing built-in web-search tool requests onto the responses path while leaving plain function tools unchanged.
+- Live validation is pending the updated GitHub-built image deployment because the currently running image was already started before this second patch.
+### Notes
+- `relay/compatible_handler.go`: now sends built-in web-search chat requests through the existing chat-via-responses bridge.
+- `service/openaicompat/policy.go`: adds request-level detection for built-in search tools.
+- `service/openaicompat/policy_test.go`: adds coverage for search-tool routing and non-search function-tool safety.
+- `docs/chat-image-bridge.md`: documents forced responses routing for built-in search tools.
+- Rollback: revert this task's changes in the four listed files, rebuild the image, and redeploy the previous `chat-image-bridge` container image.

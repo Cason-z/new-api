@@ -43,6 +43,19 @@ func TestShouldChatCompletionsUseResponsesForRequest_AutoWebSearchIntent(t *test
 	}
 }
 
+func TestShouldChatCompletionsUseResponsesForRequest_AutoWeatherSearchIntent(t *testing.T) {
+	req := &dto.GeneralOpenAIRequest{
+		Model: "gpt-5.4",
+		Messages: []dto.Message{
+			{Role: "user", Content: "帮我搜下今天上海的天气"},
+		},
+	}
+
+	if !ShouldChatCompletionsUseResponsesForRequest(req) {
+		t.Fatal("expected weather search request to use responses path")
+	}
+}
+
 func TestShouldChatCompletionsUseResponsesForRequest_NoAutoWebSearchForNormalChat(t *testing.T) {
 	req := &dto.GeneralOpenAIRequest{
 		Model: "gpt-5.4",

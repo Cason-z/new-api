@@ -232,3 +232,18 @@
 - `docs/chat-image-bridge.md`: documents the automatic web-search fallback behavior for realtime requests.
 - `progress.md`: recorded this fallback behavior, verification limits, and rollback point.
 - Rollback: revert this task's changes in the five listed files, rerun the GitHub image build, and redeploy the previous working `chat-image-bridge` image if needed.
+
+## 2026-06-17 - Task: Extend auto web-search fallback to realtime utility queries
+### What was done
+- Extended the Foundry web-search fallback so practical realtime utility questions such as weather, temperature, AQI, stock price, exchange rate, schedule, and score queries also route through Responses when Cherry Studio does not send a built-in search tool.
+- Added the exact reported Cherry Studio phrasing `帮我搜下今天上海的天气` as a covered routing case.
+- Updated compatibility documentation so the fallback scope includes weather and price-style live queries, not only news/update wording.
+### Testing
+- Added unit coverage for the reported weather-search wording.
+- Live deployment verification is still required after the GitHub image build because local Go is not available in the current PATH.
+### Notes
+- `service/openaicompat/policy.go`: added realtime utility search terms such as weather, AQI, price, exchange rate, schedule, and score.
+- `service/openaicompat/policy_test.go`: covers the weather query that reproduced the Cherry Studio issue.
+- `docs/chat-image-bridge.md`: documents the wider realtime utility fallback scope.
+- `progress.md`: recorded this narrower follow-up fix and verification path.
+- Rollback: revert this task's changes in the four listed files, rerun the GitHub image build, and redeploy the previous working `chat-image-bridge` image if needed.

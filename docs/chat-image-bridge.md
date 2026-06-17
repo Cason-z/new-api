@@ -26,4 +26,4 @@ Additional compatibility:
 - This is intended for Azure/Foundry upstreams that reject `web_search_preview` but accept the newer `web_search` tool name.
 - Requests carrying built-in web-search tools are also forced onto the `/v1/responses` compatibility path, so they do not fall back to Azure `/chat/completions` endpoints that only accept `function` and `custom` tools.
 - For Azure Foundry Responses compatibility, the rewritten built-in search tool is emitted as a plain tool object such as `{"type":"web_search"}` instead of a Chat Completions style `function` wrapper.
-- For `gpt-5.4` and `gpt-5.4-mini`, requests that clearly ask for current, latest, realtime, news, or web-search information are also routed through Responses and get a plain `web_search` tool automatically when the client did not send one.
+- For `gpt-5.4` and `gpt-5.4-mini`, requests that clearly ask for current, latest, realtime, weather, news, prices, or web-search information are also routed through Responses and get a plain `web_search` tool automatically when the client did not send one.

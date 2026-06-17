@@ -77,7 +77,10 @@ func latestUserText(messages []dto.Message) string {
 func hasSearchIntent(text string) bool {
 	alwaysSearchTerms := []string{
 		"联网", "实时", "搜索", "搜一下", "查一下", "检索", "新闻", "热搜",
+		"搜下", "查询", "查找", "天气", "气温", "温度", "降雨", "下雨", "空气质量", "aqi",
+		"航班", "汇率", "股价", "价格", "赛程", "比分",
 		"web search", "search the web", "browse", "internet", "online",
+		"weather", "temperature", "forecast", "stock price", "exchange rate",
 	}
 	for _, term := range alwaysSearchTerms {
 		if strings.Contains(text, term) {

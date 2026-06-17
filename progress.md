@@ -155,3 +155,17 @@
 - `service/chat_image_intent.go`: removed overly broad follow-up keywords and kept only visual continuation keywords for image follow-up routing.
 - `progress.md`: recorded the online false-positive correction and validation.
 - Rollback: revert this task's changes in the two listed files, then rebuild and redeploy the previous `chat-image-bridge` image.
+
+## 2026-06-17 - Task: Fix Cherry Studio web search tool compatibility for Azure Responses
+### What was done
+- Added a compatibility rewrite in the chat-to-responses conversion path so OpenAI-style `web_search_preview` tool requests are translated into Azure/Foundry-compatible `web_search` requests before they hit the upstream Responses API.
+- Kept the change narrowly scoped to built-in search tool compatibility and left existing image bridge behavior untouched.
+- Documented the Azure search-tool compatibility behavior for future deployment and troubleshooting.
+### Testing
+- Added unit coverage for converting `web_search_preview` tools and `tool_choice` into `web_search`.
+- Local Go execution could not be re-run on this machine because `go` is not available in the current PATH, so runtime verification must be completed after GitHub image build and live deployment.
+### Notes
+- `service/openaicompat/chat_to_responses.go`: normalizes built-in search tool types during chat-to-responses conversion.
+- `service/openaicompat/chat_to_responses_test.go`: adds coverage for `web_search_preview` to `web_search` conversion.
+- `docs/chat-image-bridge.md`: documents Azure/Foundry search tool compatibility.
+- Rollback: revert this task's changes in the three listed files, rebuild the image, and redeploy the previous `chat-image-bridge` container image.

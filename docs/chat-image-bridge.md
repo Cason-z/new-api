@@ -20,3 +20,7 @@ Behavior:
 - Returned images are embedded as Markdown image links. Base64 image responses are returned as `data:<detected mime>;base64,...` so the client sees the real image format instead of a hard-coded PNG label.
 
 This keeps clients such as Cherry Studio compatible without requiring them to call `/v1/images/generations` directly.
+
+Additional compatibility:
+- When an OpenAI-compatible client sends built-in search tools such as `web_search_preview` through `/v1/chat/completions`, the chat-to-responses compatibility layer rewrites that tool type to `web_search` before sending the request to Azure/Foundry Responses APIs.
+- This is intended for Azure/Foundry upstreams that reject `web_search_preview` but accept the newer `web_search` tool name.

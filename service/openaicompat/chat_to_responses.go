@@ -11,6 +11,40 @@ import (
 	"github.com/samber/lo"
 )
 
+func normalizeChatToolType(toolType string) string {
+	switch strings.TrimSpace(toolType) {
+	case dto.BuildInToolWebSearchPreview:
+		// Azure/OpenAI responses on Foundry accept `web_search`, while many
+		// OpenAI-compatible clients still send `web_search_preview`.
+		return "web_search"
+	default:
+		return strings.TrimSpace(toolType)
+	}
+}
+
+func normalizeChatToolChoiceForResponses(toolChoice any) any {
+	if toolChoice == nil {
+		return nil
+	}
+
+	switch v := toolChoice.(type) {
+	case string:
+		return v
+	default:
+		var m map[string]any
+		if b, err := common.Marshal(v); err == nil {
+			_ = common.Unmarshal(b, &m)
+		}
+		if m == nil {
+			return v
+		}
+		if t, _ := m["type"].(string); t != "" {
+			m["type"] = normalizeChatToolType(t)
+		}
+		return m
+	}
+}
+
 func normalizeChatImageURLToString(v any) any {
 	switch vv := v.(type) {
 	case string:
@@ -304,7 +338,9 @@ func ChatCompletionsRequestToResponsesRequest(req *dto.GeneralOpenAIRequest) (*d
 					_ = common.Unmarshal(b, &m)
 				}
 				if len(m) == 0 {
-					m = map[string]any{"type": tool.Type}
+					m = map[string]any{"type": normalizeChatToolType(tool.Type)}
+				} else if rawType, ok := m["type"].(string); ok {
+					m["type"] = normalizeChatToolType(rawType)
 				}
 				tools = append(tools, m)
 			}
@@ -314,7 +350,7 @@ func ChatCompletionsRequestToResponsesRequest(req *dto.GeneralOpenAIRequest) (*d
 
 	var toolChoiceRaw json.RawMessage
 	if req.ToolChoice != nil {
-		switch v := req.ToolChoice.(type) {
+		switch v := normalizeChatToolChoiceForResponses(req.ToolChoice).(type) {
 		case string:
 			toolChoiceRaw, _ = common.Marshal(v)
 		default:

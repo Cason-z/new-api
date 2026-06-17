@@ -39,6 +39,9 @@ func TestChatCompletionsRequestToResponsesRequest_NormalizesWebSearchPreview(t *
 	if got := tools[0]["type"]; got != "web_search" {
 		t.Fatalf("expected tool type web_search, got %#v", got)
 	}
+	if _, exists := tools[0]["function"]; exists {
+		t.Fatalf("did not expect function wrapper for built-in web_search tool: %#v", tools[0])
+	}
 
 	var toolChoice map[string]any
 	if err := common.Unmarshal(respReq.ToolChoice, &toolChoice); err != nil {
@@ -46,5 +49,8 @@ func TestChatCompletionsRequestToResponsesRequest_NormalizesWebSearchPreview(t *
 	}
 	if got := toolChoice["type"]; got != "web_search" {
 		t.Fatalf("expected tool_choice type web_search, got %#v", got)
+	}
+	if _, exists := toolChoice["function"]; exists {
+		t.Fatalf("did not expect function wrapper in built-in web_search tool_choice: %#v", toolChoice)
 	}
 }

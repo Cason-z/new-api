@@ -22,6 +22,15 @@ func normalizeChatToolType(toolType string) string {
 	}
 }
 
+func isResponsesBuiltInToolType(toolType string) bool {
+	switch normalizeChatToolType(toolType) {
+	case "web_search":
+		return true
+	default:
+		return false
+	}
+}
+
 func normalizeChatToolChoiceForResponses(toolChoice any) any {
 	if toolChoice == nil {
 		return nil
@@ -39,7 +48,12 @@ func normalizeChatToolChoiceForResponses(toolChoice any) any {
 			return v
 		}
 		if t, _ := m["type"].(string); t != "" {
-			m["type"] = normalizeChatToolType(t)
+			normalizedType := normalizeChatToolType(t)
+			m["type"] = normalizedType
+			if isResponsesBuiltInToolType(normalizedType) {
+				delete(m, "function")
+				delete(m, "name")
+			}
 		}
 		return m
 	}
@@ -323,8 +337,13 @@ func ChatCompletionsRequestToResponsesRequest(req *dto.GeneralOpenAIRequest) (*d
 	if req.Tools != nil {
 		tools := make([]map[string]any, 0, len(req.Tools))
 		for _, tool := range req.Tools {
-			switch tool.Type {
-			case "function":
+			normalizedType := normalizeChatToolType(tool.Type)
+			switch {
+			case isResponsesBuiltInToolType(normalizedType):
+				tools = append(tools, map[string]any{
+					"type": normalizedType,
+				})
+			case normalizedType == "function":
 				tools = append(tools, map[string]any{
 					"type":        "function",
 					"name":        tool.Function.Name,
@@ -338,9 +357,13 @@ func ChatCompletionsRequestToResponsesRequest(req *dto.GeneralOpenAIRequest) (*d
 					_ = common.Unmarshal(b, &m)
 				}
 				if len(m) == 0 {
-					m = map[string]any{"type": normalizeChatToolType(tool.Type)}
+					m = map[string]any{"type": normalizedType}
 				} else if rawType, ok := m["type"].(string); ok {
 					m["type"] = normalizeChatToolType(rawType)
+				}
+				if t, _ := m["type"].(string); isResponsesBuiltInToolType(t) {
+					delete(m, "function")
+					delete(m, "name")
 				}
 				tools = append(tools, m)
 			}

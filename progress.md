@@ -196,3 +196,21 @@
 - `service/openai_chat_responses_compat.go`: exported `ShouldChatCompletionsUseResponsesForRequest` so relay code can call the request-level built-in search detector through the `service` package.
 - `progress.md`: recorded this build-unblock patch and the remaining verification path.
 - Rollback: revert this task's changes in the two listed files, rerun the GitHub image build, and redeploy the previous working `chat-image-bridge` image if needed.
+
+## 2026-06-17 - Task: Strip Chat Completions wrapper from Foundry web search tools
+### What was done
+- Fixed the chat-to-responses conversion so built-in search requests are emitted as Foundry-style Responses tools like `{"type":"web_search"}` instead of carrying the unsupported Chat Completions `function` wrapper.
+- Applied the same cleanup to `tool_choice` and added alias-safe web-search usage accounting so the new `web_search` tool name still counts correctly in streaming usage and billing paths.
+- Updated the compatibility note to match the Microsoft Foundry web-search examples shown in the official Responses guidance.
+### Testing
+- Added unit assertions that converted built-in web-search `tools` and `tool_choice` no longer contain any `function` field.
+- Live verification is pending the next GitHub image build and redeploy; the current live regression this patch targets is `Unknown parameter: 'tools[0].function'`.
+### Notes
+- `service/openaicompat/chat_to_responses.go`: now emits built-in web-search requests as plain Responses tool objects and strips the Chat Completions wrapper.
+- `service/openaicompat/chat_to_responses_test.go`: verifies the converted built-in web-search payload no longer includes `function`.
+- `relay/common/relay_info.go`: preserves built-in web-search accounting metadata for both `web_search_preview` and `web_search`.
+- `relay/channel/openai/relay_responses.go`: counts streaming web-search tool calls for both web-search aliases.
+- `service/text_quota.go`: bills built-in web-search calls even after the request-side alias is normalized to `web_search`.
+- `docs/chat-image-bridge.md`: documents the plain built-in tool shape expected by Azure Foundry Responses.
+- `progress.md`: recorded this request-shape compatibility fix and the remaining deployment verification.
+- Rollback: revert this task's changes in the six listed files, rerun the GitHub image build, and redeploy the previous working `chat-image-bridge` image if needed.

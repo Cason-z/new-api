@@ -88,7 +88,11 @@ func calculateTextToolCallSurcharge(ctx *gin.Context, relayInfo *relaycommon.Rel
 	var surcharge decimal.Decimal
 
 	if relayInfo.ResponsesUsageInfo != nil {
-		if webSearchTool, exists := relayInfo.ResponsesUsageInfo.BuiltInTools[dto.BuildInToolWebSearchPreview]; exists && webSearchTool.CallCount > 0 {
+		webSearchTool, exists := relayInfo.ResponsesUsageInfo.BuiltInTools["web_search"]
+		if (!exists || webSearchTool == nil || webSearchTool.CallCount == 0) && relayInfo.ResponsesUsageInfo.BuiltInTools != nil {
+			webSearchTool, exists = relayInfo.ResponsesUsageInfo.BuiltInTools[dto.BuildInToolWebSearchPreview]
+		}
+		if exists && webSearchTool != nil && webSearchTool.CallCount > 0 {
 			summary.WebSearchCallCount = webSearchTool.CallCount
 			summary.WebSearchPrice = operation_setting.GetToolPriceForModel("web_search_preview", summary.ModelName)
 			surcharge = surcharge.Add(decimal.NewFromFloat(summary.WebSearchPrice).

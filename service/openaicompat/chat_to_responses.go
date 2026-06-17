@@ -31,6 +31,15 @@ func isResponsesBuiltInToolType(toolType string) bool {
 	}
 }
 
+func hasResponsesBuiltInTool(tools []dto.ToolCallRequest) bool {
+	for _, tool := range tools {
+		if isResponsesBuiltInToolType(tool.Type) {
+			return true
+		}
+	}
+	return false
+}
+
 func normalizeChatToolChoiceForResponses(toolChoice any) any {
 	if toolChoice == nil {
 		return nil
@@ -334,8 +343,13 @@ func ChatCompletionsRequestToResponsesRequest(req *dto.GeneralOpenAIRequest) (*d
 	}
 
 	var toolsRaw json.RawMessage
-	if req.Tools != nil {
-		tools := make([]map[string]any, 0, len(req.Tools))
+	if req.Tools != nil || shouldAutoEnableWebSearch(req) {
+		tools := make([]map[string]any, 0, len(req.Tools)+1)
+		if shouldAutoEnableWebSearch(req) && !hasResponsesBuiltInTool(req.Tools) {
+			tools = append(tools, map[string]any{
+				"type": "web_search",
+			})
+		}
 		for _, tool := range req.Tools {
 			normalizedType := normalizeChatToolType(tool.Type)
 			switch {

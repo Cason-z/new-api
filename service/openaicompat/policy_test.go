@@ -29,3 +29,29 @@ func TestShouldChatCompletionsUseResponsesForRequest_FunctionOnly(t *testing.T) 
 		t.Fatal("did not expect plain function tools to force responses path")
 	}
 }
+
+func TestShouldChatCompletionsUseResponsesForRequest_AutoWebSearchIntent(t *testing.T) {
+	req := &dto.GeneralOpenAIRequest{
+		Model: "gpt-5.4",
+		Messages: []dto.Message{
+			{Role: "user", Content: "GitHub skills 今天有哪些更新"},
+		},
+	}
+
+	if !ShouldChatCompletionsUseResponsesForRequest(req) {
+		t.Fatal("expected current-update request to use responses path")
+	}
+}
+
+func TestShouldChatCompletionsUseResponsesForRequest_NoAutoWebSearchForNormalChat(t *testing.T) {
+	req := &dto.GeneralOpenAIRequest{
+		Model: "gpt-5.4",
+		Messages: []dto.Message{
+			{Role: "user", Content: "帮我解释一下 GitHub skills 是什么"},
+		},
+	}
+
+	if ShouldChatCompletionsUseResponsesForRequest(req) {
+		t.Fatal("did not expect normal explanation request to force responses path")
+	}
+}

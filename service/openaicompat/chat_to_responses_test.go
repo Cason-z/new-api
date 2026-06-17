@@ -54,3 +54,31 @@ func TestChatCompletionsRequestToResponsesRequest_NormalizesWebSearchPreview(t *
 		t.Fatalf("did not expect function wrapper in built-in web_search tool_choice: %#v", toolChoice)
 	}
 }
+
+func TestChatCompletionsRequestToResponsesRequest_AutoAddsWebSearchTool(t *testing.T) {
+	req := &dto.GeneralOpenAIRequest{
+		Model: "gpt-5.4",
+		Messages: []dto.Message{
+			{
+				Role:    "user",
+				Content: "GitHub skills 今天有哪些更新",
+			},
+		},
+	}
+
+	respReq, err := ChatCompletionsRequestToResponsesRequest(req)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var tools []map[string]any
+	if err := common.Unmarshal(respReq.Tools, &tools); err != nil {
+		t.Fatalf("failed to decode tools: %v", err)
+	}
+	if len(tools) != 1 {
+		t.Fatalf("expected 1 auto-added tool, got %d", len(tools))
+	}
+	if got := tools[0]["type"]; got != "web_search" {
+		t.Fatalf("expected auto-added tool type web_search, got %#v", got)
+	}
+}

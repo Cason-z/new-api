@@ -214,3 +214,21 @@
 - `docs/chat-image-bridge.md`: documents the plain built-in tool shape expected by Azure Foundry Responses.
 - `progress.md`: recorded this request-shape compatibility fix and the remaining deployment verification.
 - Rollback: revert this task's changes in the six listed files, rerun the GitHub image build, and redeploy the previous working `chat-image-bridge` image if needed.
+
+## 2026-06-17 - Task: Auto-enable Foundry web search for clear realtime requests
+### What was done
+- Added a narrow fallback for `gpt-5.4` and `gpt-5.4-mini` requests that clearly ask for current, latest, realtime, news, or web-search information when the client does not send a built-in search tool.
+- The fallback routes those requests through the Responses compatibility path and injects a plain Foundry-compatible `web_search` tool so Cherry Studio can still get live search results.
+- Kept normal explanation and writing requests on the plain chat path to avoid forcing every conversation into web search.
+### Testing
+- Added unit coverage for auto-routing realtime update requests and for keeping normal explanatory chat off the search path.
+- Added conversion coverage proving an omitted search tool is auto-added as `{"type":"web_search"}` for a clear current-update request.
+- Local Go verification is still unavailable on this workstation because `go` is not present in the current PATH; GitHub image build and live Cherry-style request verification remain the deployment proof.
+### Notes
+- `service/openaicompat/policy.go`: added narrow search-intent detection for `gpt-5.4` family requests without explicit tools.
+- `service/openaicompat/policy_test.go`: covers the new auto-routing and non-search safeguard cases.
+- `service/openaicompat/chat_to_responses.go`: injects a plain `web_search` tool when the fallback search path is selected.
+- `service/openaicompat/chat_to_responses_test.go`: verifies the auto-added Foundry web-search tool.
+- `docs/chat-image-bridge.md`: documents the automatic web-search fallback behavior for realtime requests.
+- `progress.md`: recorded this fallback behavior, verification limits, and rollback point.
+- Rollback: revert this task's changes in the five listed files, rerun the GitHub image build, and redeploy the previous working `chat-image-bridge` image if needed.
